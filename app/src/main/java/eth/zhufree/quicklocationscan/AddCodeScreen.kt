@@ -30,8 +30,6 @@ fun AddCodeScreen(
 
     if (modifyLocation != "null") {
         qrUrl.value = PreferenceUtil.getStringValue(modifyLocation)
-    } else {
-        qrUrl.value = ""
     }
 
     Scaffold(

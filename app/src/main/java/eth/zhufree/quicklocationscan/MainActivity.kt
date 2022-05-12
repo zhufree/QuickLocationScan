@@ -1,13 +1,10 @@
 package eth.zhufree.quicklocationscan
 
-import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
@@ -92,6 +89,8 @@ fun ScanApp(intent: ActivityResultLauncher<Array<String>>,
     NavHost(navController = navController, startDestination = "home") {
         composable("home") {
             HomeScreen({
+                qrUrl.value = ""
+                imageUri.value = null
                 navController.navigate("addNewCode/${it}")
             }, {
                 scanQr(PreferenceUtil.getStringValue(it))
