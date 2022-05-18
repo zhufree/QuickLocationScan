@@ -61,15 +61,17 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
                 ) {
-                    ScanApp(choosePhotoIntent, imageUri, qrUrl) {
-                        alipayScan(it)
+                    ScanApp(choosePhotoIntent, imageUri, qrUrl, {
+                        startIntent(it)
+                    }) {
+                        startIntent(it)
                     }
                 }
             }
         }
     }
 
-    private fun alipayScan(url: String) {
+    private fun startIntent(url: String) {
         val uri = Uri.parse(url)
         val intent = Intent(Intent.ACTION_VIEW, uri)
         startActivity(intent)
@@ -80,7 +82,8 @@ class MainActivity : ComponentActivity() {
 fun ScanApp(intent: ActivityResultLauncher<Array<String>>,
             imageUri: MutableState<Uri?>,
             qrUrl: MutableState<String>,
-            scanQr: (url: String)->Unit
+            scanQr: (url: String)->Unit,
+            goUrl: (url: String)->Unit
 ) {
     val navController = rememberNavController()
 
@@ -90,6 +93,8 @@ fun ScanApp(intent: ActivityResultLauncher<Array<String>>,
                 qrUrl.value = ""
                 imageUri.value = null
                 navController.navigate("addNewCode/${it}")
+            },  {
+                navController.navigate("about")
             }, {
                 scanQr(PreferenceUtil.getStringValue(it))
             })
@@ -98,6 +103,13 @@ fun ScanApp(intent: ActivityResultLauncher<Array<String>>,
             AddCodeScreen(intent, imageUri, qrUrl, backStackEntry.arguments?.getString("location")?:"null"){
                 navController.popBackStack()
             }
+        }
+        composable("about"){
+            AboutScreen( {
+                navController.popBackStack()
+            }, {
+                goUrl(it)
+            })
         }
     }
 }

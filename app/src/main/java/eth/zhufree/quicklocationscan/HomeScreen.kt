@@ -11,20 +11,23 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun HomeScreen(navigateToAddCode: (location: String?) -> Unit, scanQrCode: (location: String)->Unit) {
+fun HomeScreen(navigateToAddCode: (location: String?) -> Unit,
+               navigateToAbout: () -> Unit,
+               scanQrCode: (location: String)->Unit) {
     val scaffoldState = rememberScaffoldState(rememberDrawerState(DrawerValue.Open))
     var allLocations = PreferenceUtil.getStringValue("locations").split(",").filter { i -> i.isNotBlank() }
     val openDialog = remember { mutableStateOf(false) }
@@ -41,6 +44,19 @@ fun HomeScreen(navigateToAddCode: (location: String?) -> Unit, scanQrCode: (loca
             TopAppBar(
                 title = { Text("场所码捷径", color = MaterialTheme.colors.surface) },
                 backgroundColor = MaterialTheme.colors.primary,
+                navigationIcon = {
+                    IconButton(
+                        onClick = {
+                            navigateToAbout()
+                        }
+                    ) {
+                        Icon(
+                            Icons.Default.Info,
+                            contentDescription = "Info",
+                            tint = MaterialTheme.colors.surface
+                        )
+                    }
+                },
                 actions = {
                     Button(
                         onClick = {
