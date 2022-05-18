@@ -27,8 +27,10 @@ fun AddCodeScreen(
 
     val location =  remember { mutableStateOf(if (modifyLocation== "null") "" else modifyLocation) }
     val allLocations = PreferenceUtil.getStringValue("locations").split(",").toMutableList()
+    var modifyIndex = -1 // modify exist position
 
     if (modifyLocation != "null") {
+        modifyIndex = allLocations.indexOf(modifyLocation)
         qrUrl.value = PreferenceUtil.getStringValue(modifyLocation)
     }
 
@@ -90,11 +92,13 @@ fun AddCodeScreen(
             Button(onClick = {
                 // save to Pref
                 // get all location
-                if (location.value !in allLocations) {
+                if (modifyIndex == -1) {
                     // change
                     allLocations.add(location.value)
-                    PreferenceUtil.setStringValue("locations", allLocations.joinToString(","))
+                } else {
+                    allLocations[modifyIndex] = location.value
                 }
+                PreferenceUtil.setStringValue("locations", allLocations.joinToString(","))
                 PreferenceUtil.setStringValue(location.value, qrUrl.value)
                 navigateBack()
             }) {

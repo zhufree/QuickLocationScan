@@ -3,6 +3,9 @@ import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.GridCells
+import androidx.compose.foundation.lazy.LazyVerticalGrid
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
@@ -23,11 +26,13 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun HomeScreen(navigateToAddCode: (location: String?) -> Unit, scanQrCode: (location: String)->Unit) {
     val scaffoldState = rememberScaffoldState(rememberDrawerState(DrawerValue.Open))
-    var allLocations = PreferenceUtil.getStringValue("locations").split(",")
+    var allLocations = PreferenceUtil.getStringValue("locations").split(",").filter { i -> i.isNotBlank() }
     val openDialog = remember { mutableStateOf(false) }
     val currentLocation = remember {
         mutableStateOf("")
     }
+    val listState = rememberLazyListState()
+
     Scaffold(
         scaffoldState = scaffoldState,
         backgroundColor = MaterialTheme.colors.background,
@@ -64,44 +69,56 @@ fun HomeScreen(navigateToAddCode: (location: String?) -> Unit, scanQrCode: (loca
                 modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
                 text="使用说明：点击按钮添加场所码，选择手机上拍好的场所码图片解析链接，保存后会出现在首页，之后直接点击即可启动支付宝自动扫。"
             )
-            Column {
-                allLocations.forEach { location ->
-                    if (location.isNotBlank()) {
-                        val cd6 = CornerSize(6.dp)
-                        Card(
-                            elevation = 2.dp,
-                            backgroundColor = MaterialTheme.colors.primary,
-                            shape = RoundedCornerShape(cd6, cd6, cd6, cd6),
-                        ){
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
+            LazyVerticalGrid(
+                cells = GridCells.Fixed(2),
+                state = listState,
+                contentPadding = PaddingValues(
+                    start = 12.dp,
+                    top = 16.dp,
+                    end = 12.dp,
+                    bottom = 16.dp
+                ),
+                content = {
+                    items(allLocations.size) { index ->
+                        val location = allLocations[index]
+                        if (location.isNotBlank()) {
+                            val cd6 = CornerSize(6.dp)
+                            Card(
+                                elevation = 2.dp,
                                 modifier = Modifier
-                                    .size(200.dp, 60.dp)
-                                    .padding(8.dp)
-                                    .combinedClickable(
-                                        onLongClick = {
-                                            currentLocation.value = location
-                                            openDialog.value = true
-                                        }
-                                    ) {
-                                        scanQrCode(location)
-                                    },
+                                    .padding(4.dp)
+                                    .fillMaxWidth(),
+                                backgroundColor = MaterialTheme.colors.primary,
+                                shape = RoundedCornerShape(cd6, cd6, cd6, cd6),
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxHeight()
-                                ){
-                                    Text(
-                                        text = location,
-                                        color = MaterialTheme.colors.onPrimary,
-                                        fontSize = 22.sp)
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier
+                                        .padding(8.dp)
+                                        .combinedClickable(
+                                            onLongClick = {
+                                                currentLocation.value = location
+                                                openDialog.value = true
+                                            }
+                                        ) {
+                                            scanQrCode(location)
+                                        },
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxHeight()
+                                    ) {
+                                        Text(
+                                            text = location,
+                                            color = MaterialTheme.colors.onPrimary,
+                                            fontSize = 22.sp
+                                        )
+                                    }
                                 }
                             }
                         }
-                        Spacer(modifier = Modifier.size(0.dp, 16.dp))
                     }
-                }
-            }
+                })
         }
         if (openDialog.value) {
             AlertDialog(
@@ -139,3 +156,4 @@ fun HomeScreen(navigateToAddCode: (location: String?) -> Unit, scanQrCode: (loca
         }
     }
 }
+
