@@ -5,6 +5,8 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
@@ -19,10 +21,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.google.zxing.BinaryBitmap
+import com.google.zxing.NotFoundException
 import com.google.zxing.RGBLuminanceSource
 import com.google.zxing.common.GlobalHistogramBinarizer
 import com.google.zxing.qrcode.QRCodeReader
 import eth.zhufree.quicklocationscan.ui.theme.QuickLocationScanTheme
+import java.net.URLEncoder
 
 
 class MainActivity : ComponentActivity() {
@@ -47,9 +51,24 @@ class MainActivity : ComponentActivity() {
                 srcBitmap?.getPixels(pixels, 0, width, 0, 0, width, height)
                 val source = RGBLuminanceSource(width, height, pixels)
                 val binaryBitmap = BinaryBitmap(GlobalHistogramBinarizer(source))
-                val reader = QRCodeReader() // 初始化解析对象
-                val result = reader.decode(binaryBitmap)
-                qrUrl.value = result.text
+                try {
+                    val reader = QRCodeReader() // 初始化解析对象
+                    val result = reader.decode(binaryBitmap)
+                    if (result.text.startsWith("alipays://")) {
+                        qrUrl.value = result.text
+                    } else if ("qrcode.sh.gov.cn" in result.text) {
+                        // 随申码
+                        qrUrl.value = "alipays://platformapi/startapp?appId=20000067&url=" +
+                                result.text.replace("=", "%3D")
+                                    .replace("/", "%2F")
+                                    .replace(":", "%3A")
+                    } else {
+                        qrUrl.value = result.text
+                    }
+                } catch (e: NotFoundException) {
+                    Toast.makeText(this, "未找到场所码", Toast.LENGTH_SHORT).show()
+                }
+
             }
         }
 
@@ -72,6 +91,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startIntent(url: String) {
+        Toast.makeText(this, url, Toast.LENGTH_SHORT).show()
         val uri = Uri.parse(url)
         val intent = Intent(Intent.ACTION_VIEW, uri)
         startActivity(intent)
