@@ -5,7 +5,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -26,13 +25,12 @@ import com.google.zxing.RGBLuminanceSource
 import com.google.zxing.common.GlobalHistogramBinarizer
 import com.google.zxing.qrcode.QRCodeReader
 import eth.zhufree.quicklocationscan.ui.theme.QuickLocationScanTheme
-import java.net.URLEncoder
 
 
 class MainActivity : ComponentActivity() {
 
-    private val imageUri =  mutableStateOf<Uri?>(null)
-    private val qrUrl = mutableStateOf("")
+    private val imageUri = mutableStateOf<Uri?>(null)
+    private val scanViewModel = ScanViewModel()
     private val choosePhotoIntent: ActivityResultLauncher<Array<String>> =
         registerForActivityResult(ActivityResultContracts.OpenDocument()) {
             it?.let {
@@ -46,7 +44,7 @@ class MainActivity : ComponentActivity() {
 
                 val srcBitmap = BitmapFactory.decodeStream(inputStream, null, options)
                 val width: Int = srcBitmap?.width ?: 0
-                val height: Int = srcBitmap?.height ?:0
+                val height: Int = srcBitmap?.height ?: 0
                 val pixels = IntArray(width * height)
                 srcBitmap?.getPixels(pixels, 0, width, 0, 0, width, height)
                 val source = RGBLuminanceSource(width, height, pixels)
@@ -54,16 +52,50 @@ class MainActivity : ComponentActivity() {
                 try {
                     val reader = QRCodeReader() // 初始化解析对象
                     val result = reader.decode(binaryBitmap)
+                    // %2F : /
+                    // %3D : =
+                    // %3F: ?
                     if (result.text.startsWith("alipays://")) {
-                        qrUrl.value = result.text
+                        scanViewModel.setScanQrUrl(result.text)
+                        //alipays://platformapi/startapp?appld=
+                        //2021002175684865&page=pages%2Findex%2Findex&nbupdate=syncforce&query=communityCode
+                        //%3D3301040080061522038249882320897
                     } else if ("qrcode.sh.gov.cn" in result.text) {
                         // 随申码
-                        qrUrl.value = "alipays://platformapi/startapp?appId=20000067&url=" +
-                                result.text.replace("=", "%3D")
-                                    .replace("/", "%2F")
-                                    .replace(":", "%3A")
+                        // http://qrcode.sh.gov.cn/enterprise/
+                        // scene?f=1&m=ZMMAXd0HRb1k%2B%2B29UpPE0hGo5MGf9zWTWPNlw4
+                        // %2BfD0PWEBkeAgSc3g
+                        // %2F03JGPhLxueO6hSwcceZml0NYWGk9S5
+                        // %2FtvoCLNg1vthbDHgCpX1fc
+                        // %3D&qrcodeType=80
+                        scanViewModel.setScanQrUrl(
+                            "alipays://platformapi/startapp?appId=20000067&url=" +
+                                    result.text
+//                                    .replace("%2B", "+")
+                                        .replace("=", "%3D")
+                                        .replace("+", "%2B")
+                                        .replace("?", "%3F")
+                                        .replace("&", "%26")
+                                        .replace("/", "%2F")
+                                        .replace(":", "%3A")
+                        )
+//                        qrUrl.value = result.text
+                    } else if ("jiaxing.gov.cn" in result.text) {
+                        scanViewModel.setScanQrUrl(
+                            "alipays://platformapi/startapp?appId=20000067&url=" +
+                                    result.text.replace("=", "%3D")
+                                        .replace("/", "%2F")
+                                        .replace(":", "%3A")
+                        )
+                    } else if (result.text.startsWith("http")) {
+                        scanViewModel.setScanQrUrl(
+                            "alipays://platformapi/startapp?appId=20000067&url=" +
+                                    result.text.replace("=", "%3D")
+                                        .replace("/", "%2F")
+                                        .replace(":", "%3A")
+                        )
                     } else {
-                        qrUrl.value = result.text
+                        scanViewModel.setScanQrUrl(result.text)
                     }
                 } catch (e: NotFoundException) {
                     Toast.makeText(this, "未找到场所码", Toast.LENGTH_SHORT).show()
@@ -80,7 +112,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
                 ) {
-                    ScanApp(choosePhotoIntent, imageUri, qrUrl, {
+                    ScanApp(scanViewModel, choosePhotoIntent, imageUri, {
                         startIntent(it)
                     }) {
                         startIntent(it)
@@ -99,33 +131,43 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun ScanApp(intent: ActivityResultLauncher<Array<String>>,
-            imageUri: MutableState<Uri?>,
-            qrUrl: MutableState<String>,
-            scanQr: (url: String)->Unit,
-            goUrl: (url: String)->Unit
+fun ScanApp(
+    scanViewModel: ScanViewModel,
+    intent: ActivityResultLauncher<Array<String>>,
+    imageUri: MutableState<Uri?>,
+    scanQr: (url: String) -> Unit,
+    goUrl: (url: String) -> Unit
 ) {
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = "home") {
         composable("home") {
             HomeScreen({
-                qrUrl.value = ""
                 imageUri.value = null
                 navController.navigate("addNewCode/${it}")
-            },  {
+            }, {
                 navController.navigate("about")
             }, {
                 scanQr(PreferenceUtil.getStringValue(it))
             })
         }
         composable("addNewCode/{location}") { backStackEntry ->
-            AddCodeScreen(intent, imageUri, qrUrl, backStackEntry.arguments?.getString("location")?:"null"){
+            val location = backStackEntry.arguments?.getString("location") ?: "null"
+            if (location != "null") {
+                scanViewModel.setScanQrUrl(PreferenceUtil.getStringValue(location))
+            }
+            AddCodeScreen(
+                scanViewModel,
+                intent,
+                imageUri,
+                location
+            ) {
+                scanViewModel.setScanQrUrl("")
                 navController.popBackStack()
             }
         }
-        composable("about"){
-            AboutScreen( {
+        composable("about") {
+            AboutScreen({
                 navController.popBackStack()
             }, {
                 goUrl(it)

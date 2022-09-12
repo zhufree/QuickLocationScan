@@ -10,28 +10,31 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.skydoves.landscapist.glide.GlideImage
 
 @Composable
 fun AddCodeScreen(
+    scanViewModel: ScanViewModel,
     intent: ActivityResultLauncher<Array<String>>,
     imageUri: MutableState<Uri?>,
-    qrUrl: MutableState<String>,
     modifyLocation: String,
-    navigateBack: () -> Unit) {
+    navigateBack: () -> Unit
+) {
     val scaffoldState = rememberScaffoldState(rememberDrawerState(DrawerValue.Open))
 
-    val location =  remember { mutableStateOf(if (modifyLocation== "null") "" else modifyLocation) }
+    val location = remember { mutableStateOf(if (modifyLocation == "null") "" else modifyLocation) }
     val allLocations = PreferenceUtil.getStringValue("locations").split(",").toMutableList()
     var modifyIndex = -1 // modify exist position
+    val currentQrUrl = scanViewModel.scanQrUrl.observeAsState()
 
     if (modifyLocation != "null") {
         modifyIndex = allLocations.indexOf(modifyLocation)
-        qrUrl.value = PreferenceUtil.getStringValue(modifyLocation)
     }
 
     Scaffold(
@@ -56,7 +59,7 @@ fun AddCodeScreen(
                 }
             )
         },
-    ) {
+    ) { p ->
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
@@ -83,8 +86,9 @@ fun AddCodeScreen(
                 label = { Text("场所名称") }
             )
             OutlinedTextField(
-                value = qrUrl.value,
-                onValueChange = {  },
+                value = currentQrUrl.value?:"",
+                onValueChange = {
+                },
                 readOnly = true,
                 label = { Text("场所码链接") }
             )
@@ -99,7 +103,7 @@ fun AddCodeScreen(
                     allLocations[modifyIndex] = location.value
                 }
                 PreferenceUtil.setStringValue("locations", allLocations.joinToString(","))
-                PreferenceUtil.setStringValue(location.value, qrUrl.value)
+                PreferenceUtil.setStringValue(location.value, currentQrUrl.value?:"")
                 navigateBack()
             }) {
                 Text(text = "保存")
