@@ -1,9 +1,6 @@
 package eth.zhufree.quicklocationscan
 
-import android.content.Intent
-import android.net.Uri
-import android.widget.Space
-import androidx.compose.foundation.background
+import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,13 +8,13 @@ import androidx.compose.material.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.skydoves.landscapist.glide.GlideImage
 
+@SuppressLint("UnusedMaterialScaffoldPaddingParameter")
 @Composable
 fun AboutScreen(navigateBack: () -> Unit, goUrl: (url: String) -> Unit) {
     val scaffoldState = rememberScaffoldState(rememberDrawerState(DrawerValue.Open))
@@ -43,7 +40,7 @@ fun AboutScreen(navigateBack: () -> Unit, goUrl: (url: String) -> Unit) {
                 }
             )
         },
-    ) {
+    ) { _ ->
         Column(
             modifier = Modifier
                 .padding(16.dp)

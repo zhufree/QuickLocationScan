@@ -93,6 +93,8 @@ class MainActivity : ComponentActivity() {
                                     result.text.replace("=", "%3D")
                                         .replace("/", "%2F")
                                         .replace(":", "%3A")
+                                        .replace("&", "%26")
+                                        .replace("#", "%23")
                         )
                     } else {
                         scanViewModel.setScanQrUrl(result.text)
